@@ -4,10 +4,10 @@ from aiogram import Router, types
 from aiogram.filters import CommandStart
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
-# Подключаем базу данных
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "bot.db")
-
 router = Router()
+
+# База данных
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "bot.db")
 
 # ===== ТВОИ ПЕРЕМЕННЫЕ =====
 VIDEO_URL = "http://195.133.60.26:8080/vecherniy.mp4"
@@ -69,7 +69,7 @@ SITE_ONLY_KEYBOARD = ReplyKeyboardMarkup(
 )
 
 
-# ===== ФУНКЦИЯ СОХРАНЕНИЯ ПОЛЬЗОВАТЕЛЯ =====
+# ===== ФУНКЦИИ БАЗЫ ДАННЫХ =====
 def save_user(user_id: int, username: str = None, full_name: str = None):
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -83,10 +83,22 @@ def save_user(user_id: int, username: str = None, full_name: str = None):
         print(f"Ошибка сохранения пользователя: {e}")
 
 
+def save_phone(user_id: int, phone: str):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "UPDATE users SET phone = ? WHERE user_id = ?",
+            (phone, user_id)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Ошибка сохранения номера: {e}")
+
+
 # ===== ОБРАБОТЧИК КОМАНДЫ /start =====
 @router.message(CommandStart())
 async def bot_start(message: types.Message):
-    # Сохраняем пользователя в базу
     save_user(
         user_id=message.from_user.id,
         username=message.from_user.username,
@@ -133,17 +145,7 @@ async def handle_contact(message: types.Message):
     phone = message.contact.phone_number
     user_id = message.from_user.id
 
-    # Сохраняем номер телефона в базу
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.execute(
-            "UPDATE users SET phone = ? WHERE user_id = ?",
-            (phone, user_id)
-        )
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Ошибка сохранения номера: {e}")
+    save_phone(user_id, phone)
 
     await message.answer(
         CLUB_SUCCESS_TEXT,
