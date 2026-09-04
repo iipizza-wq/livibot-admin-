@@ -5,8 +5,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from loader import bot, dp
-from handlers import start as start_handlers
-from handlers import admin
+from handlers import start_router, admin_router
+from handlers.admin import init_users_table
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +17,12 @@ async def main() -> None:
         level=logging.INFO,
     )
 
-    # Подключаем роутер с твоей логикой
-    dp.include_router(start_handlers.router)
-    
-    # Подключаем админ-роутер
-    dp.include_router(admin.router)
+    # Подключаем роутеры
+    dp.include_router(start_router)
+    dp.include_router(admin_router)
+
+    # Инициализируем таблицу пользователей в базе данных
+    init_users_table()
 
     await bot.delete_webhook(drop_pending_updates=True)
 
