@@ -5,11 +5,9 @@ from aiogram.filters import CommandStart
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 router = Router()
-
-# База данных
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "bot.db")
 
-# ===== ТВОИ ПЕРЕМЕННЫЕ =====
+# === ТВОИ ПЕРЕМЕННЫЕ ===
 VIDEO_URL = "http://195.133.60.26:8080/vecherniy.mp4"
 CLUB_BOT_LINK = "https://t.me/livi_club_bot"
 SITE_LINK = "https://leralivi.ru/"
@@ -41,7 +39,6 @@ CLUB_SUCCESS_TEXT = (
     "Добро пожаловать в LIVICLUB! 🕊✨"
 )
 
-# ===== КЛАВИАТУРЫ =====
 START_KEYBOARD = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text=BTN_GET_COMPLEX)]],
     resize_keyboard=True
@@ -68,8 +65,6 @@ SITE_ONLY_KEYBOARD = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-
-# ===== ФУНКЦИИ БАЗЫ ДАННЫХ =====
 def save_user(user_id: int, username: str = None, full_name: str = None):
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -81,7 +76,6 @@ def save_user(user_id: int, username: str = None, full_name: str = None):
         conn.close()
     except Exception as e:
         print(f"Ошибка сохранения пользователя: {e}")
-
 
 def save_phone(user_id: int, phone: str):
     try:
@@ -95,8 +89,6 @@ def save_phone(user_id: int, phone: str):
     except Exception as e:
         print(f"Ошибка сохранения номера: {e}")
 
-
-# ===== ОБРАБОТЧИК КОМАНДЫ /start =====
 @router.message(CommandStart())
 async def bot_start(message: types.Message):
     save_user(
@@ -104,15 +96,12 @@ async def bot_start(message: types.Message):
         username=message.from_user.username,
         full_name=message.from_user.full_name
     )
-
     await message.answer(
         "Начинаем заново!",
         reply_markup=ReplyKeyboardRemove()
     )
     await message.answer(START_TEXT, reply_markup=START_KEYBOARD)
 
-
-# ===== ОБРАБОТЧИК КНОПКИ "Хочу получить комплекс" =====
 @router.message(lambda message: message.text == BTN_GET_COMPLEX)
 async def handle_get_complex(message: types.Message):
     await message.answer(
@@ -121,8 +110,6 @@ async def handle_get_complex(message: types.Message):
         parse_mode='Markdown'
     )
 
-
-# ===== ОБРАБОТЧИК КНОПКИ "Хочу в клуб. Перейти для подписки" =====
 @router.message(lambda message: message.text == BTN_CLUB)
 async def handle_club_button(message: types.Message):
     await message.answer(
@@ -130,23 +117,17 @@ async def handle_club_button(message: types.Message):
         reply_markup=PHONE_KEYBOARD
     )
 
-
-# ===== ОБРАБОТЧИК КНОПКИ "Узнать подробнее" =====
 @router.message(lambda message: message.text == BTN_SITE)
 async def handle_site_button(message: types.Message):
     await message.answer(
         f"Подробнее о клубе на сайте: {SITE_LINK}"
     )
 
-
-# ===== ОБРАБОТЧИК НОМЕРА ТЕЛЕФОНА =====
 @router.message(lambda message: message.contact is not None)
 async def handle_contact(message: types.Message):
     phone = message.contact.phone_number
     user_id = message.from_user.id
-
     save_phone(user_id, phone)
-
     await message.answer(
         CLUB_SUCCESS_TEXT,
         reply_markup=SITE_ONLY_KEYBOARD
