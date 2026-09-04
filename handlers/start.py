@@ -1,8 +1,13 @@
-from aiogram import types
+import sqlite3
+import os
+from aiogram import Router, types
 from aiogram.filters import CommandStart
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
-from loader import router
+# Подключаем базу данных
+DB_PATH = os.path.join(os.path.dirname(__file__), "..", "bot.db")
+
+router = Router()
 
 # ===== ТВОИ ПЕРЕМЕННЫЕ =====
 VIDEO_URL = "http://195.133.60.26:8080/vecherniy.mp4"
@@ -36,6 +41,7 @@ CLUB_SUCCESS_TEXT = (
     "Добро пожаловать в LIVICLUB! 🕊✨"
 )
 
+# ===== КЛАВИАТУРЫ =====
 START_KEYBOARD = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text=BTN_GET_COMPLEX)]],
     resize_keyboard=True
@@ -63,9 +69,30 @@ SITE_ONLY_KEYBOARD = ReplyKeyboardMarkup(
 )
 
 
+# ===== ФУНКЦИЯ СОХРАНЕНИЯ ПОЛЬЗОВАТЕЛЯ =====
+def save_user(user_id: int, username: str = None, full_name: str = None):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT OR IGNORE INTO users (user_id, username, full_name) VALUES (?, ?, ?)",
+            (user_id, username, full_name)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Ошибка сохранения пользователя: {e}")
+
+
 # ===== ОБРАБОТЧИК КОМАНДЫ /start =====
 @router.message(CommandStart())
 async def bot_start(message: types.Message):
+    # Сохраняем пользователя в базу
+    save_user(
+        user_id=message.from_user.id,
+        username=message.from_user.username,
+        full_name=message.from_user.full_name
+    )
+
     await message.answer(
         "Начинаем заново!",
         reply_markup=ReplyKeyboardRemove()
@@ -105,7 +132,19 @@ async def handle_site_button(message: types.Message):
 async def handle_contact(message: types.Message):
     phone = message.contact.phone_number
     user_id = message.from_user.id
-    
+
+    # Сохраняем номер телефона в базу
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "UPDATE users SET phone = ? WHERE user_id = ?",
+            (phone, user_id)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Ошибка сохранения номера: {e}")
+
     await message.answer(
         CLUB_SUCCESS_TEXT,
         reply_markup=SITE_ONLY_KEYBOARD
