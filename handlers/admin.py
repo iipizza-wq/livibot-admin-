@@ -10,14 +10,16 @@ import os
 router = Router()
 
 # ТВОЙ ID
-ADMIN_IDS = [287889641]  # ЗАМЕНИ!
+ADMIN_IDS = [287889641]  # Твой ID из базы
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "bot.db")
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 def init_users_table():
     conn = get_db()
@@ -34,8 +36,10 @@ def init_users_table():
     conn.commit()
     conn.close()
 
+
 class BroadcastStates(StatesGroup):
     waiting_for_message = State()
+
 
 def admin_keyboard():
     return ReplyKeyboardMarkup(
@@ -48,6 +52,7 @@ def admin_keyboard():
         resize_keyboard=True
     )
 
+
 @router.message(Command("admin"))
 async def admin_panel(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
@@ -59,19 +64,21 @@ async def admin_panel(message: types.Message):
         reply_markup=admin_keyboard()
     )
 
+
 @router.message(F.text == "📊 Статистика")
 async def admin_statistics(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
         return
     conn = get_db()
-    users = conn.execute("SELECT COUNT(*) as count FROM users").fetchone()
+    result = conn.execute("SELECT COUNT(*) as count FROM users").fetchone()
     conn.close()
-    total = users["count"] if users else 0
+    total = result["count"] if result else 0
     await message.answer(
-        f"📊 **Статистика**\n\n👥 Всего пользователей: {total}\n📅 За сегодня: 0",
+        f"📊 **Статистика**\n\n👥 Всего пользователей: {total}",
         parse_mode="Markdown",
         reply_markup=admin_keyboard()
     )
+
 
 @router.message(F.text == "👥 Пользователи")
 async def admin_users(message: types.Message):
@@ -82,19 +89,24 @@ async def admin_users(message: types.Message):
         "SELECT user_id, username, full_name, phone, registered_at FROM users ORDER BY registered_at DESC LIMIT 10"
     ).fetchall()
     conn.close()
+
     if not users:
         await message.answer("📭 Пользователей пока нет.", reply_markup=admin_keyboard())
         return
+
     text = "👥 **Последние 10 пользователей:**\n\n"
     for u in users:
         text += f"🆔 {u['user_id']}\n"
         if u['username']:
             text += f"👤 @{u['username']}\n"
-        text += f"📝 {u['full_name']}\n"
+        if u['full_name']:
+            text += f"📝 {u['full_name']}\n"
         if u['phone']:
             text += f"📱 {u['phone']}\n"
         text += f"📅 {u['registered_at']}\n\n"
+
     await message.answer(text, parse_mode="Markdown", reply_markup=admin_keyboard())
+
 
 @router.message(F.text == "📨 Рассылка")
 async def admin_broadcast_start(message: types.Message, state: FSMContext):
@@ -110,11 +122,13 @@ async def admin_broadcast_start(message: types.Message, state: FSMContext):
         )
     )
 
+
 @router.message(F.text == "🔙 Отмена")
 @router.message(Command("cancel"))
 async def cancel_broadcast(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("✅ Рассылка отменена.", reply_markup=admin_keyboard())
+
 
 @router.message(BroadcastStates.waiting_for_message)
 async def send_broadcast(message: types.Message, state: FSMContext):
@@ -124,13 +138,16 @@ async def send_broadcast(message: types.Message, state: FSMContext):
     conn = get_db()
     users = conn.execute("SELECT user_id FROM users").fetchall()
     conn.close()
+
     if not users:
         await message.answer("📭 Нет пользователей для рассылки.", reply_markup=admin_keyboard())
         await state.clear()
         return
+
     await message.answer("🚀 Начинаю рассылку...")
     sent = 0
     failed = 0
+
     for user in users:
         try:
             await message.bot.send_message(
@@ -141,11 +158,13 @@ async def send_broadcast(message: types.Message, state: FSMContext):
             sent += 1
         except Exception:
             failed += 1
+
     await message.answer(
         f"✅ **Рассылка завершена!**\n\n📤 Отправлено: {sent}\n❌ Ошибок: {failed}",
         reply_markup=admin_keyboard()
     )
     await state.clear()
+
 
 @router.message(F.text == "🔙 Назад")
 async def admin_back(message: types.Message):
