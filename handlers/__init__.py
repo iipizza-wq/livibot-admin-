@@ -1,3 +1,4 @@
-from .start import router
+from .start import router as start_router
+from .admin import router as admin_router
 
-__all__ = ["router"]
+__all__ = ["start_router", "admin_router"]
