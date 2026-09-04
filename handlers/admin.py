@@ -10,7 +10,7 @@ import os
 router = Router()
 
 # Твой ID
-ADMIN_IDS = [123456789]  # ЗАМЕНИ НА СВОЙ ID
+ADMIN_IDS = [287889641]  # ЗАМЕНИ НА СВОЙ ID
 
 # База данных
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "bot.db")
