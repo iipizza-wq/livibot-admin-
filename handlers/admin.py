@@ -10,7 +10,7 @@ import os
 router = Router()
 
 # Твой ID
-ADMIN_IDS = [287889641]  # ЗАМЕНИ НА СВОЙ
+ADMIN_IDS = [123456789]  # ЗАМЕНИ НА СВОЙ ID
 
 # База данных
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "bot.db")
@@ -22,7 +22,6 @@ def get_db():
     return conn
 
 
-# Инициализация таблицы
 def init_users_table():
     conn = get_db()
     conn.execute("""
@@ -39,12 +38,10 @@ def init_users_table():
     conn.close()
 
 
-# Состояния для рассылки
 class BroadcastStates(StatesGroup):
     waiting_for_message = State()
 
 
-# Клавиатура админа
 def admin_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -57,7 +54,6 @@ def admin_keyboard():
     )
 
 
-# Обработчик команды /admin
 @router.message(Command("admin"))
 async def admin_panel(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
@@ -65,14 +61,12 @@ async def admin_panel(message: types.Message):
         return
 
     await message.answer(
-        "🔐 **Админ-панель**\n\n"
-        "Выбери действие:",
+        "🔐 **Админ-панель**\n\nВыбери действие:",
         parse_mode="Markdown",
         reply_markup=admin_keyboard()
     )
 
 
-# Статистика
 @router.message(F.text == "📊 Статистика")
 async def admin_statistics(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
@@ -85,16 +79,12 @@ async def admin_statistics(message: types.Message):
     total = users["count"] if users else 0
 
     await message.answer(
-        f"📊 **Статистика**\n\n"
-        f"👥 Всего пользователей: {total}\n"
-        f"📅 За сегодня: 0\n\n"
-        f"*(Подробная статистика в разработке)*",
+        f"📊 **Статистика**\n\n👥 Всего пользователей: {total}\n📅 За сегодня: 0\n\n*(Подробная статистика в разработке)*",
         parse_mode="Markdown",
         reply_markup=admin_keyboard()
     )
 
 
-# Список пользователей
 @router.message(F.text == "👥 Пользователи")
 async def admin_users(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
@@ -123,7 +113,6 @@ async def admin_users(message: types.Message):
     await message.answer(text, parse_mode="Markdown", reply_markup=admin_keyboard())
 
 
-# Рассылка — начало
 @router.message(F.text == "📨 Рассылка")
 async def admin_broadcast_start(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS:
@@ -131,10 +120,7 @@ async def admin_broadcast_start(message: types.Message, state: FSMContext):
 
     await state.set_state(BroadcastStates.waiting_for_message)
     await message.answer(
-        "📨 **Рассылка**\n\n"
-        "Отправь текст, который я разошлю всем пользователям.\n\n"
-        "❗️ *Сообщение будет отправлено всем, кто есть в базе.*\n"
-        "Для отмены отправь /cancel",
+        "📨 **Рассылка**\n\nОтправь текст, который я разошлю всем пользователям.\n\n❗️ *Сообщение будет отправлено всем, кто есть в базе.*\nДля отмены отправь /cancel",
         parse_mode="Markdown",
         reply_markup=ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text="🔙 Отмена")]],
@@ -143,7 +129,6 @@ async def admin_broadcast_start(message: types.Message, state: FSMContext):
     )
 
 
-# Отмена рассылки
 @router.message(F.text == "🔙 Отмена")
 @router.message(Command("cancel"))
 async def cancel_broadcast(message: types.Message, state: FSMContext):
@@ -151,7 +136,6 @@ async def cancel_broadcast(message: types.Message, state: FSMContext):
     await message.answer("✅ Рассылка отменена.", reply_markup=admin_keyboard())
 
 
-# Отправка рассылки
 @router.message(BroadcastStates.waiting_for_message)
 async def send_broadcast(message: types.Message, state: FSMContext):
     if message.from_user.id not in ADMIN_IDS:
@@ -159,7 +143,6 @@ async def send_broadcast(message: types.Message, state: FSMContext):
 
     text = message.text
 
-    # Получаем всех пользователей
     conn = get_db()
     users = conn.execute("SELECT user_id FROM users").fetchall()
     conn.close()
@@ -186,15 +169,12 @@ async def send_broadcast(message: types.Message, state: FSMContext):
             failed += 1
 
     await message.answer(
-        f"✅ **Рассылка завершена!**\n\n"
-        f"📤 Отправлено: {sent}\n"
-        f"❌ Ошибок: {failed}",
+        f"✅ **Рассылка завершена!**\n\n📤 Отправлено: {sent}\n❌ Ошибок: {failed}",
         reply_markup=admin_keyboard()
     )
     await state.clear()
 
 
-# Кнопка "Назад"
 @router.message(F.text == "🔙 Назад")
 async def admin_back(message: types.Message):
     if message.from_user.id not in ADMIN_IDS:
